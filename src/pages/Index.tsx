@@ -5,45 +5,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Globe, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import ScanResults from "@/components/ScanResults";
+import { securityScanner, ScanResult } from "@/services/securityScanner";
+import { validateUrl } from "@/utils/urlValidator";
 
 const Index = () => {
   const [url, setUrl] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
-  const [scanResults, setScanResults] = useState(null);
+  const [scanResults, setScanResults] = useState<ScanResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleScan = async () => {
     if (!url) return;
-    
+
+    // Validate URL
+    const validation = validateUrl(url);
+    if (!validation.isValid) {
+      setError(validation.error || 'URL invalide');
+      return;
+    }
+
     setIsScanning(true);
     setScanComplete(false);
-    
-    // Simulation du scan (à remplacer par votre logique de scan réelle)
-    setTimeout(() => {
-      const mockResults = {
-        url: url,
-        timestamp: new Date().toISOString(),
-        vulnerabilities: [
-          {
-            type: "Headers de sécurité manquants",
-            severity: "medium",
-            description: "Certains headers de sécurité recommandés sont absents",
-            details: "X-Frame-Options, Content-Security-Policy"
-          },
-          {
-            type: "Méthodes HTTP non sécurisées",
-            severity: "low",
-            description: "Des méthodes HTTP potentiellement dangereuses sont activées",
-            details: "PUT, DELETE autorisées"
-          }
-        ],
-        score: 75
-      };
-      
-      setScanResults(mockResults);
-      setIsScanning(false);
+    setError(null);
+
+    try {
+      const results = await securityScanner.scanWebsite(validation.normalizedUrl!);
+      setScanResults(results);
       setScanComplete(true);
-    }, 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'analyse');
+      console.error('Erreur lors du scan:', err);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   return (
@@ -122,6 +117,18 @@ const Index = () => {
                   <div>
                     <p className="text-blue-200 font-medium">Analyse de sécurité en cours...</p>
                     <p className="text-blue-300 text-sm">Vérification des headers, méthodes HTTP et vulnérabilités courantes</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-6 p-4 bg-red-500/20 rounded-lg border border-red-400/30">
+                <div className="flex items-center space-x-3">
+                  <AlertTriangle className="h-5 w-5 text-red-400" />
+                  <div>
+                    <p className="text-red-200 font-medium">Erreur lors de l'analyse</p>
+                    <p className="text-red-300 text-sm">{error}</p>
                   </div>
                 </div>
               </div>

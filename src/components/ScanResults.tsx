@@ -1,24 +1,18 @@
 
 import { AlertTriangle, CheckCircle, XCircle, Download, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface Vulnerability {
-  type: string;
-  severity: "low" | "medium" | "high";
-  description: string;
-  details: string;
-}
+import { pdfGenerator } from "@/services/pdfGenerator";
+import { ScanResult } from "@/services/securityScanner";
 
 interface ScanResultsProps {
-  results: {
-    url: string;
-    timestamp: string;
-    vulnerabilities: Vulnerability[];
-    score: number;
-  };
+  results: ScanResult;
 }
 
 const ScanResults = ({ results }: ScanResultsProps) => {
+  const handleDownloadPDF = () => {
+    pdfGenerator.downloadPDF(results);
+  };
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "high": return "text-red-400 bg-red-500/20 border-red-400/30";
@@ -52,7 +46,11 @@ const ScanResults = ({ results }: ScanResultsProps) => {
             <Shield className="h-6 w-6 text-purple-400" />
             <h3 className="text-2xl font-medium text-white">Rapport d'Analyse</h3>
           </div>
-          <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
+          <Button
+            variant="outline"
+            className="border-white/30 text-white hover:bg-white/10"
+            onClick={handleDownloadPDF}
+          >
             <Download className="h-4 w-4 mr-2" />
             Exporter PDF
           </Button>
