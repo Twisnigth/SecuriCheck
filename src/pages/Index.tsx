@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Globe, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import ScanResults from "@/components/ScanResults";
-import TestDemo from "@/components/TestDemo";
 import { securityScanner, ScanResult } from "@/services/securityScanner";
 import { validateUrl } from "@/utils/urlValidator";
 
