@@ -22,7 +22,7 @@ class PDFGenerator {
     doc.setFontSize(8);
     doc.setTextColor(128, 128, 128);
     doc.text(`Page ${pageNumber} - Généré le ${new Date().toLocaleDateString('fr-FR')}`, 20, pageHeight - 10);
-    doc.text('Cyber Sensei Tool - Version Étudiante', 150, pageHeight - 10);
+    doc.text('Securicheck', 150, pageHeight - 10);
   }
 
   private getSeverityColor(severity: string): [number, number, number] {
@@ -64,7 +64,7 @@ class PDFGenerator {
     
     // Score with color
     const scoreColor = result.score >= 80 ? [34, 197, 94] : result.score >= 60 ? [245, 158, 11] : [239, 68, 68];
-    doc.setTextColor(...scoreColor);
+    doc.setTextColor(scoreColor[0], scoreColor[1], scoreColor[2]);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text(`${result.score}/100`, 20, currentY + 15);

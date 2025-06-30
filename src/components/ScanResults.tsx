@@ -1,4 +1,3 @@
-
 import { AlertTriangle, CheckCircle, XCircle, Download, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { pdfGenerator } from "@/services/pdfGenerator";
@@ -48,7 +47,7 @@ const ScanResults = ({ results }: ScanResultsProps) => {
           </div>
           <Button
             variant="outline"
-            className="border-white/30 text-white hover:bg-white/10"
+            className="border-white/30 text-purple-400 hover:bg-white/10 hover:text-white"
             onClick={handleDownloadPDF}
           >
             <Download className="h-4 w-4 mr-2" />

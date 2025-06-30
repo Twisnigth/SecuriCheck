@@ -1,4 +1,4 @@
-# Cyber Sensei Tool - Scanner de Sécurité Web
+# Securicheck - Scanner de Sécurité Web
 
 Un scanner de sécurité web moderne construit avec React, TypeScript, et Vite. Cet outil permet d'analyser les vulnérabilités de sécurité d'un site web et de générer un rapport PDF téléchargeable.
 
@@ -143,4 +143,4 @@ Ce projet est ouvert aux contributions pour améliorer les fonctionnalités d'an
 
 ## 📄 Licence
 
-Projet éducatif - Version étudiante
+Projet éducatif

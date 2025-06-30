@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Globe, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { Shield, Globe, AlertTriangle, CheckCircle, Loader2, FileText } from "lucide-react";
 import ScanResults from "@/components/ScanResults";
 import { securityScanner, ScanResult } from "@/services/securityScanner";
 import { validateUrl } from "@/utils/urlValidator";
@@ -48,10 +47,7 @@ const Index = () => {
         <div className="flex items-center justify-between mb-12">
           <div className="flex items-center space-x-3">
             <Shield className="h-8 w-8 text-purple-400" />
-            <h1 className="text-2xl font-semibold text-white">Scanner de Vulnérabilités Web</h1>
-          </div>
-          <div className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            Version Étudiante
+            <h1 className="text-2xl font-semibold text-white">Securicheck</h1>
           </div>
         </div>
 
@@ -161,10 +157,10 @@ const Index = () => {
           
           <div className="text-center p-6">
             <div className="bg-purple-500/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="h-8 w-8 text-purple-400" />
+              <FileText className="h-8 w-8 text-purple-400" />
             </div>
-            <h4 className="text-xl font-medium text-white mb-2">Apprentissage</h4>
-            <p className="text-slate-300">Conçu spécialement pour les étudiants</p>
+            <h4 className="text-xl font-medium text-white mb-2">Génération de PDF</h4>
+            <p className="text-slate-300">Créez des rapports détaillés sur les vulnérabilités détectées</p>
           </div>
         </div>
       </div>
