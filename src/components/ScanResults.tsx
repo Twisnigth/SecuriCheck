@@ -13,28 +13,43 @@ const ScanResults = ({ results }: ScanResultsProps) => {
   };
 
   const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "high": return "text-red-400 bg-red-500/20 border-red-400/30";
-      case "medium": return "text-yellow-400 bg-yellow-500/20 border-yellow-400/30";
-      case "low": return "text-blue-400 bg-blue-500/20 border-blue-400/30";
-      default: return "text-gray-400 bg-gray-500/20 border-gray-400/30";
-    }
-  };
+  switch (severity) {
+    case "critical": return "text-red-600 bg-red-600/20 border-red-600/30";
+    case "high": return "text-red-400 bg-red-500/20 border-red-400/30";
+    case "medium": return "text-yellow-400 bg-yellow-500/20 border-yellow-400/30";
+    case "low": return "text-blue-400 bg-blue-500/20 border-blue-400/30";
+    case "info": return "text-gray-400 bg-gray-500/20 border-gray-400/30";
+    default: return "text-gray-400 bg-gray-500/20 border-gray-400/30";
+  }
+};
+
 
   const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case "high": return <XCircle className="h-5 w-5" />;
-      case "medium": return <AlertTriangle className="h-5 w-5" />;
-      case "low": return <AlertTriangle className="h-5 w-5" />;
-      default: return <CheckCircle className="h-5 w-5" />;
-    }
-  };
+  switch (severity) {
+    case "critical": return <XCircle className="h-5 w-5 text-red-600" />;
+    case "high": return <XCircle className="h-5 w-5 text-red-400" />;
+    case "medium": return <AlertTriangle className="h-5 w-5 text-yellow-400" />;
+    case "low": return <AlertTriangle className="h-5 w-5 text-blue-400" />;
+    case "info": return <CheckCircle className="h-5 w-5 text-gray-400" />;
+    default: return <CheckCircle className="h-5 w-5 text-gray-400" />;
+  }
+};
+
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-400";
     if (score >= 60) return "text-yellow-400";
     return "text-red-400";
   };
+
+  const classifySeverityFromScore = (score: number) => {
+  if (score >= 9) return "critical";
+  if (score >= 7) return "high";
+  if (score >= 4) return "medium";
+  if (score >= 1) return "low";
+  return "info";
+};
+
 
   return (
     <div className="max-w-4xl mx-auto">
