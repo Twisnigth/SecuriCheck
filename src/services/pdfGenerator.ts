@@ -2,6 +2,10 @@ import jsPDF from 'jspdf';
 import { ScanResult, Vulnerability } from './securityScanner';
 
 class PDFGenerator {
+  private removeEmojis(text: string): string {
+    // Remove emojis and other Unicode symbols
+    return text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+  }
   private addHeader(doc: jsPDF, title: string) {
     // Add logo/title area
     doc.setFillColor(88, 28, 135); // Purple color
@@ -27,9 +31,11 @@ class PDFGenerator {
 
   private getSeverityColor(severity: string): [number, number, number] {
     switch (severity) {
+      case 'critical': return [220, 38, 38]; // Dark Red
       case 'high': return [239, 68, 68]; // Red
       case 'medium': return [245, 158, 11]; // Orange
       case 'low': return [59, 130, 246]; // Blue
+      case 'info': return [107, 114, 128]; // Gray
       default: return [107, 114, 128]; // Gray
     }
   }
@@ -101,7 +107,14 @@ class PDFGenerator {
       return currentY;
     }
 
-    vulnerabilities.forEach((vuln, index) => {
+    // Sort vulnerabilities by severity (critical > high > medium > low > info)
+    const sortedVulnerabilities = [...vulnerabilities].sort((a, b) => {
+      const severityOrder = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
+      return (severityOrder[b.severity as keyof typeof severityOrder] || 0) -
+             (severityOrder[a.severity as keyof typeof severityOrder] || 0);
+    });
+
+    sortedVulnerabilities.forEach((vuln, index) => {
       // Check if we need a new page
       if (currentY > 250) {
         doc.addPage();
@@ -116,9 +129,10 @@ class PDFGenerator {
       currentY += 10;
 
       // Severity badge
-      const severityColor = vuln.severity === 'best-practice' ? [34, 197, 94] : this.getSeverityColor(vuln.severity);
+      const severityColor = this.getSeverityColor(vuln.severity);
       doc.setFillColor(...severityColor);
-      doc.roundedRect(20, currentY - 5, 25, 8, 2, 2, 'F');
+      const badgeWidth = vuln.severity === 'critical' ? 35 : 25;
+      doc.roundedRect(20, currentY - 5, badgeWidth, 8, 2, 2, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
@@ -163,9 +177,13 @@ class PDFGenerator {
     return currentY;
   }
 
-  private addRecommendationsSection(doc: jsPDF, startY: number): number {
+  private addPersonalizedAdviceSection(doc: jsPDF, personalizedAdvice: string[], startY: number): number {
     let currentY = startY;
-    
+
+    if (!personalizedAdvice || personalizedAdvice.length === 0) {
+      return currentY;
+    }
+
     // Check if we need a new page
     if (currentY > 220) {
       doc.addPage();
@@ -176,32 +194,60 @@ class PDFGenerator {
     // Section title
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Recommandations générales', 20, currentY);
+    doc.text('Conseils Personnalisés', 20, currentY);
     currentY += 15;
-
-    const recommendations = [
-      'Configurez tous les headers de sécurité recommandés (CSP, X-Frame-Options, etc.)',
-      'Utilisez toujours HTTPS avec des certificats SSL/TLS valides',
-      'Désactivez les méthodes HTTP non nécessaires',
-      'Masquez les informations sur le serveur et les technologies utilisées',
-      'Effectuez des audits de sécurité réguliers',
-      'Tenez vos systèmes et dépendances à jour',
-      'Implémentez une politique de sécurité stricte',
-      'Formez votre équipe aux bonnes pratiques de sécurité'
-    ];
 
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
 
-    recommendations.forEach((rec, index) => {
+    personalizedAdvice.forEach((advice) => {
       if (currentY > 270) {
         doc.addPage();
         this.addHeader(doc, 'Rapport de Sécurité');
         currentY = 50;
       }
-      
-      doc.text(`• ${rec}`, 25, currentY);
-      currentY += 8;
+
+      // Remove emojis from advice text
+      const cleanAdvice = this.removeEmojis(advice);
+
+      // Skip empty lines after emoji removal
+      if (!cleanAdvice.trim()) {
+        return;
+      }
+
+      // Handle different types of advice formatting
+      if (advice.includes('PRIORITÉ ABSOLUE') || advice.includes('HAUTE PRIORITÉ') ||
+          advice.includes('Configuration') || advice.includes('Cookies') ||
+          advice.includes('CSRF') || advice.includes('Confidentialité') ||
+          advice.includes('HTTP') || advice.includes('critique') ||
+          advice.includes('Améliorations') || advice.includes('sécurité') ||
+          advice.includes('Recommandations générales')) {
+        // Priority/category headers
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        const lines = doc.splitTextToSize(cleanAdvice, 170);
+        doc.text(lines, 20, currentY);
+        currentY += lines.length * 6 + 5;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+      } else if (cleanAdvice.startsWith('•')) {
+        // Main bullet points
+        const lines = doc.splitTextToSize(cleanAdvice, 165);
+        doc.text(lines, 25, currentY);
+        currentY += lines.length * 5 + 3;
+      } else if (cleanAdvice.startsWith('  •')) {
+        // Sub bullet points
+        doc.setFontSize(10);
+        const lines = doc.splitTextToSize(cleanAdvice, 160);
+        doc.text(lines, 30, currentY);
+        currentY += lines.length * 4 + 2;
+        doc.setFontSize(11);
+      } else {
+        // Regular text
+        const lines = doc.splitTextToSize(cleanAdvice, 170);
+        doc.text(lines, 20, currentY);
+        currentY += lines.length * 5 + 3;
+      }
     });
 
     return currentY;
@@ -222,9 +268,9 @@ class PDFGenerator {
     // Add vulnerabilities section
     currentY = this.addVulnerabilitiesSection(doc, result.vulnerabilities, currentY);
     currentY += 10;
-    
-    // Add recommendations section
-    this.addRecommendationsSection(doc, currentY);
+
+    // Add personalized advice section
+    this.addPersonalizedAdviceSection(doc, result.personalizedAdvice || [], currentY);
     
     // Add footer to all pages
     const pageCount = doc.getNumberOfPages();

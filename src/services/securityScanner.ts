@@ -2,10 +2,11 @@ import axios from 'axios';
 
 export interface Vulnerability {
   type: string;
-  severity: "low" | "medium" | "high" | "best-practice";
+  severity: "info" | "low" | "medium" | "high" | "critical";
   description: string;
   details: string;
   recommendation?: string;
+  exploitable?: boolean;
 }
 
 export interface ScanResult {
@@ -28,6 +29,7 @@ export interface ScanResult {
     hasExternalScripts?: boolean;
     formCount?: number;
   };
+  personalizedAdvice?: string[];
 }
 
 export interface CookieInfo {
@@ -63,73 +65,83 @@ class SecurityScanner {
           header: 'x-frame-options',
           name: 'X-Frame-Options',
           description: 'Protège contre les attaques de clickjacking',
-          severity: 'medium' as const
+          severity: 'medium' as const,
+          exploitable: true
         },
         {
           header: 'content-security-policy',
           name: 'Content-Security-Policy',
           description: 'Prévient les attaques XSS et injection de code',
-          severity: 'high' as const
+          severity: 'high' as const,
+          exploitable: true
         },
         {
           header: 'x-content-type-options',
           name: 'X-Content-Type-Options',
           description: 'Empêche le MIME type sniffing',
-          severity: 'medium' as const
+          severity: 'medium' as const,
+          exploitable: true
         },
         {
           header: 'strict-transport-security',
           name: 'Strict-Transport-Security',
           description: 'Force l\'utilisation de HTTPS',
-          severity: 'high' as const
+          severity: 'high' as const,
+          exploitable: true
         },
         {
           header: 'x-xss-protection',
           name: 'X-XSS-Protection',
           description: 'Active la protection XSS du navigateur',
-          severity: 'low' as const
+          severity: 'info' as const,
+          exploitable: false
         },
         {
           header: 'referrer-policy',
           name: 'Referrer-Policy',
           description: 'Contrôle les informations de référent envoyées',
-          severity: 'medium' as const
+          severity: 'low' as const,
+          exploitable: false
         },
         {
           header: 'permissions-policy',
           name: 'Permissions-Policy',
           description: 'Contrôle l\'accès aux APIs du navigateur',
-          severity: 'medium' as const
+          severity: 'medium' as const,
+          exploitable: true
         },
         {
           header: 'cross-origin-embedder-policy',
           name: 'Cross-Origin-Embedder-Policy',
           description: 'Protège contre les attaques Spectre',
-          severity: 'medium' as const
+          severity: 'medium' as const,
+          exploitable: true
         },
         {
           header: 'cross-origin-opener-policy',
           name: 'Cross-Origin-Opener-Policy',
           description: 'Isole le contexte de navigation',
-          severity: 'medium' as const
+          severity: 'low' as const,
+          exploitable: false
         },
         {
           header: 'cross-origin-resource-policy',
           name: 'Cross-Origin-Resource-Policy',
           description: 'Protège contre les inclusions cross-origin',
-          severity: 'medium' as const
+          severity: 'medium' as const,
+          exploitable: true
         }
       ];
 
-      securityHeaders.forEach(({ header, name, description, severity }) => {
+      securityHeaders.forEach(({ header, name, description, severity, exploitable }) => {
         if (!headers[header] && !headers[header.toLowerCase()]) {
-          const vulnSeverity = severity === 'low' ? 'best-practice' : severity;
           vulnerabilities.push({
             type: `Header de sécurité manquant: ${name}`,
-            severity: vulnSeverity,
+            severity,
             description,
             details: `Le header ${name} n'est pas présent dans la réponse`,
-            recommendation: `Ajouter le header ${name} à la configuration du serveur`
+            recommendation: `Ajouter le header ${name} à la configuration du serveur`,
+            exploitable: exploitable ?? true
           });
         }
       });
@@ -138,20 +150,22 @@ class SecurityScanner {
       if (headers['server']) {
         vulnerabilities.push({
           type: 'Information du serveur exposée',
-          severity: 'low',
+          severity: 'info',
           description: 'Le header Server révèle des informations sur le serveur',
           details: `Server: ${headers['server']}`,
-          recommendation: 'Masquer ou supprimer le header Server'
+          recommendation: 'Masquer ou supprimer le header Server',
+          exploitable: false
         });
       }
 
       if (headers['x-powered-by']) {
         vulnerabilities.push({
           type: 'Technologie exposée',
-          severity: 'low',
+          severity: 'info',
           description: 'Le header X-Powered-By révèle la technologie utilisée',
           details: `X-Powered-By: ${headers['x-powered-by']}`,
-          recommendation: 'Supprimer le header X-Powered-By'
+          recommendation: 'Supprimer le header X-Powered-By',
+          exploitable: false
         });
       }
 
@@ -161,19 +175,21 @@ class SecurityScanner {
         if (csp.includes('unsafe-inline')) {
           vulnerabilities.push({
             type: 'CSP avec unsafe-inline',
-            severity: 'medium',
+            severity: 'high',
             description: 'La politique CSP autorise les scripts inline',
             details: 'unsafe-inline détecté dans la CSP',
-            recommendation: 'Éviter unsafe-inline et utiliser des nonces ou hashes'
+            recommendation: 'Éviter unsafe-inline et utiliser des nonces ou hashes',
+            exploitable: true
           });
         }
         if (csp.includes('unsafe-eval')) {
           vulnerabilities.push({
             type: 'CSP avec unsafe-eval',
-            severity: 'high',
+            severity: 'critical',
             description: 'La politique CSP autorise eval() et fonctions similaires',
             details: 'unsafe-eval détecté dans la CSP',
-            recommendation: 'Supprimer unsafe-eval de la politique CSP'
+            recommendation: 'Supprimer unsafe-eval de la politique CSP',
+            exploitable: true
           });
         }
         if (csp.includes('*')) {
@@ -182,7 +198,8 @@ class SecurityScanner {
             severity: 'medium',
             description: 'La politique CSP utilise des wildcards (*)',
             details: 'Wildcard (*) détecté dans la CSP',
-            recommendation: 'Spécifier des domaines précis au lieu d\'utiliser *'
+            recommendation: 'Spécifier des domaines précis au lieu d\'utiliser *',
+            exploitable: true
           });
         }
       }
@@ -197,16 +214,18 @@ class SecurityScanner {
             severity: 'medium',
             description: 'La durée HSTS est inférieure à 1 an',
             details: `max-age=${maxAge[1]} (recommandé: 31536000+)`,
-            recommendation: 'Augmenter max-age à au moins 31536000 (1 an)'
+            recommendation: 'Augmenter max-age à au moins 31536000 (1 an)',
+            exploitable: true
           });
         }
         if (!hsts.includes('includeSubDomains')) {
           vulnerabilities.push({
             type: 'HSTS sans includeSubDomains',
-            severity: 'low',
+            severity: 'info',
             description: 'HSTS ne couvre pas les sous-domaines',
             details: 'includeSubDomains manquant',
-            recommendation: 'Ajouter includeSubDomains à la directive HSTS'
+            recommendation: 'Ajouter includeSubDomains à la directive HSTS',
+            exploitable: false
           });
         }
       }
@@ -216,10 +235,11 @@ class SecurityScanner {
       if (!cacheControl) {
         vulnerabilities.push({
           type: 'Absence de contrôle de cache',
-          severity: 'best-practice',
+          severity: 'info',
           description: 'Aucune directive de cache définie',
           details: 'Header Cache-Control manquant',
-          recommendation: 'Définir des directives de cache appropriées'
+          recommendation: 'Définir des directives de cache appropriées',
+          exploitable: false
         });
       } else if (cacheControl.includes('no-cache') && cacheControl.includes('no-store')) {
         // This is actually good for sensitive pages
@@ -671,12 +691,91 @@ class SecurityScanner {
   private calculateScore(vulnerabilities: Vulnerability[]): number {
     let score = 100;
     vulnerabilities.forEach(vuln => {
-      if (vuln.severity === 'high') score -= 15;
-      else if (vuln.severity === 'medium') score -= 8;
-      else if (vuln.severity === 'low') score -= 3;
-      // Exclude 'best-practice' from scoring.
+      if (vuln.severity === 'critical') score -= 20;
+      else if (vuln.severity === 'high') score -= 15;
+      else if (vuln.severity === 'medium') score -= 10;
+      else if (vuln.severity === 'low') score -= 5;
+      // Exclude 'info' from scoring as they are non-exploitable.
     });
     return Math.max(0, Math.min(100, score));
+  }
+
+  private generatePersonalizedAdvice(vulnerabilities: Vulnerability[]): string[] {
+    const advice: string[] = [];
+    const vulnTypes = vulnerabilities.map(v => v.type);
+    const severities = vulnerabilities.map(v => v.severity);
+
+    // Analyse des vulnérabilités critiques et high
+    const criticalVulns = vulnerabilities.filter(v => v.severity === 'critical');
+    const highVulns = vulnerabilities.filter(v => v.severity === 'high');
+
+    if (criticalVulns.length > 0) {
+      advice.push("🚨 PRIORITÉ ABSOLUE : Vous avez des vulnérabilités critiques qui nécessitent une correction immédiate. Ces failles peuvent être exploitées facilement par des attaquants.");
+
+      if (criticalVulns.some(v => v.type.includes('CSP'))) {
+        advice.push("• Votre Content Security Policy (CSP) présente des failles critiques. Révisez immédiatement votre politique CSP pour éliminer 'unsafe-eval' et renforcer les restrictions.");
+      }
+    }
+
+    if (highVulns.length > 0) {
+      advice.push("⚠️ HAUTE PRIORITÉ : Plusieurs vulnérabilités de haute sévérité ont été détectées. Planifiez leur correction dans les plus brefs délais.");
+
+      if (highVulns.some(v => v.type.includes('HTTPS') || v.type.includes('SSL') || v.type.includes('TLS'))) {
+        advice.push("• Problèmes de chiffrement détectés : Assurez-vous d'utiliser HTTPS avec des certificats valides et des versions TLS récentes (1.2+).");
+      }
+
+      if (highVulns.some(v => v.type.includes('Content-Security-Policy'))) {
+        advice.push("• CSP manquante : Implémentez une Content Security Policy robuste pour prévenir les attaques XSS et d'injection de code.");
+      }
+
+      if (highVulns.some(v => v.type.includes('Strict-Transport-Security'))) {
+        advice.push("• HSTS manquant : Activez HTTP Strict Transport Security pour forcer l'utilisation de HTTPS.");
+      }
+    }
+
+    // Conseils basés sur les types de vulnérabilités
+    if (vulnTypes.some(type => type.includes('Header de sécurité manquant'))) {
+      const missingHeaders = vulnerabilities.filter(v => v.type.includes('Header de sécurité manquant')).length;
+      advice.push(`📋 Configuration des headers : ${missingHeaders} header(s) de sécurité manquant(s). Configurez votre serveur web pour inclure tous les headers de sécurité recommandés.`);
+    }
+
+    if (vulnTypes.some(type => type.includes('Cookie'))) {
+      advice.push("🍪 Sécurité des cookies : Configurez vos cookies avec les attributs Secure, HttpOnly et SameSite appropriés pour prévenir les attaques de session.");
+    }
+
+    if (vulnTypes.some(type => type.includes('CSRF'))) {
+      advice.push("🛡️ Protection CSRF : Implémentez des tokens CSRF pour tous vos formulaires afin de prévenir les attaques Cross-Site Request Forgery.");
+    }
+
+    if (vulnTypes.some(type => type.includes('Information') || type.includes('Technologie'))) {
+      advice.push("🔒 Divulgation d'informations : Masquez les informations sur votre serveur et les technologies utilisées pour réduire la surface d'attaque.");
+    }
+
+    if (vulnTypes.some(type => type.includes('méthode HTTP'))) {
+      advice.push("🌐 Méthodes HTTP : Désactivez les méthodes HTTP non nécessaires (PUT, DELETE, TRACE) pour réduire les risques d'exploitation.");
+    }
+
+    // Conseils basés sur le score global
+    const score = this.calculateScore(vulnerabilities);
+    if (score < 50) {
+      advice.push("🔴 Score critique : Votre site présente de nombreuses vulnérabilités. Considérez un audit de sécurité complet et implémentez un plan de remédiation urgent.");
+    } else if (score < 70) {
+      advice.push("🟡 Améliorations nécessaires : Votre sécurité peut être significativement améliorée. Priorisez la correction des vulnérabilités de haute et moyenne sévérité.");
+    } else if (score < 85) {
+      advice.push("🟢 Bonne base de sécurité : Votre site a une sécurité correcte, mais quelques améliorations peuvent encore renforcer votre posture de sécurité.");
+    }
+
+    // Conseils généraux basés sur les vulnérabilités détectées
+    if (vulnerabilities.length > 0) {
+      advice.push("📚 Recommandations générales :");
+      advice.push("  • Effectuez des tests de sécurité réguliers avec cet outil");
+      advice.push("  • Tenez vos systèmes et dépendances à jour");
+      advice.push("  • Formez votre équipe aux bonnes pratiques de sécurité");
+      advice.push("  • Considérez l'implémentation d'un WAF (Web Application Firewall)");
+      advice.push("  • Mettez en place une surveillance de sécurité continue");
+    }
+
+    return advice;
   }
 
   private async performAdvancedChecks(url: string, headers: Record<string, string>): Promise<Vulnerability[]> {
@@ -1277,6 +1376,9 @@ class SecurityScanner {
     // Calculate security score
     const score = this.calculateScore(allVulnerabilities);
 
+    // Generate personalized advice
+    const personalizedAdvice = this.generatePersonalizedAdvice(allVulnerabilities);
+
     return {
       url,
       timestamp: new Date().toISOString(),
@@ -1287,7 +1389,8 @@ class SecurityScanner {
       sslInfo,
       cookies,
       redirects,
-      contentInfo
+      contentInfo,
+      personalizedAdvice
     };
   }
 }

@@ -2,8 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Shield, Globe, AlertTriangle, CheckCircle, Loader2, FileText } from "lucide-react";
+import { Link } from "react-router-dom";
 import ScanResults from "@/components/ScanResults";
+import Footer from "@/components/Footer";
 import { securityScanner, ScanResult } from "@/services/securityScanner";
 import { validateUrl } from "@/utils/urlValidator";
 
@@ -13,9 +16,16 @@ const Index = () => {
   const [scanComplete, setScanComplete] = useState(false);
   const [scanResults, setScanResults] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasPermission, setHasPermission] = useState(false);
 
   const handleScan = async () => {
     if (!url) return;
+
+    // Check permission
+    if (!hasPermission) {
+      setError('Vous devez confirmer avoir la permission d\'effectuer ce scan et accepter les conditions d\'utilisation.');
+      return;
+    }
 
     // Validate URL
     const validation = validateUrl(url);
@@ -41,14 +51,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 font-inter">
+    <div className="min-h-screen font-inter">
       {/* Header */}
       <div className="container mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-12">
-          <div className="flex items-center space-x-3">
+          <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200 cursor-pointer">
             <Shield className="h-8 w-8 text-purple-400" />
             <h1 className="text-2xl font-semibold text-white">Securicheck</h1>
-          </div>
+          </Link>
         </div>
 
         {/* Hero Section */}
@@ -86,11 +96,27 @@ const Index = () => {
                   className="bg-white/20 border-white/30 text-white placeholder:text-slate-400 focus:bg-white/25"
                 />
               </div>
-              
-              <Button 
+
+              {/* Permission and Terms Checkbox */}
+              <div className="flex items-start space-x-3 p-4 bg-white/5 rounded-lg border border-white/20">
+                <Checkbox
+                  id="permission"
+                  checked={hasPermission}
+                  onCheckedChange={(checked) => setHasPermission(checked as boolean)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <Label htmlFor="permission" className="text-white text-sm leading-relaxed cursor-pointer">
+                    Je confirme avoir la permission d'effectuer un scan de sécurité sur ce site web et j'accepte les conditions d'utilisation.
+                    Je comprends que cet outil effectue des tests de sécurité non-destructifs et que je suis responsable de l'utilisation appropriée de cet outil.
+                  </Label>
+                </div>
+              </div>
+
+              <Button
                 onClick={handleScan}
-                disabled={!url || isScanning}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 text-lg font-medium"
+                disabled={!url || isScanning || !hasPermission}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 text-lg font-medium disabled:opacity-50"
               >
                 {isScanning ? (
                   <>
@@ -164,6 +190,7 @@ const Index = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

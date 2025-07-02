@@ -12,16 +12,23 @@ const ScanResults = ({ results }: ScanResultsProps) => {
     pdfGenerator.downloadPDF(results);
   };
 
+  // Sort vulnerabilities by severity (critical > high > medium > low > info)
+  const sortedVulnerabilities = [...results.vulnerabilities].sort((a, b) => {
+    const severityOrder = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
+    return (severityOrder[b.severity as keyof typeof severityOrder] || 0) -
+           (severityOrder[a.severity as keyof typeof severityOrder] || 0);
+  });
+
   const getSeverityColor = (severity: string) => {
-  switch (severity) {
-    case "critical": return "text-red-600 bg-red-600/20 border-red-600/30";
-    case "high": return "text-red-400 bg-red-500/20 border-red-400/30";
-    case "medium": return "text-yellow-400 bg-yellow-500/20 border-yellow-400/30";
-    case "low": return "text-blue-400 bg-blue-500/20 border-blue-400/30";
-    case "info": return "text-gray-400 bg-gray-500/20 border-gray-400/30";
-    default: return "text-gray-400 bg-gray-500/20 border-gray-400/30";
-  }
-};
+    switch (severity) {
+      case "critical": return "text-red-600 bg-red-600/20 border-red-600/30";
+      case "high": return "text-red-400 bg-red-500/20 border-red-400/30";
+      case "medium": return "text-yellow-400 bg-yellow-500/20 border-yellow-400/30";
+      case "low": return "text-blue-400 bg-blue-500/20 border-blue-400/30";
+      case "info": return "text-gray-400 bg-gray-500/20 border-gray-400/30";
+      default: return "text-gray-400 bg-gray-500/20 border-gray-400/30";
+    }
+  };
 
 
   const getSeverityIcon = (severity: string) => {
@@ -93,7 +100,7 @@ const ScanResults = ({ results }: ScanResultsProps) => {
             Vulnérabilités Détectées ({results.vulnerabilities.length})
           </h4>
           
-          {results.vulnerabilities.map((vuln, index) => (
+          {sortedVulnerabilities.map((vuln, index) => (
             <div key={index} className={`p-6 rounded-xl border ${getSeverityColor(vuln.severity)}`}>
               <div className="flex items-start space-x-4">
                 <div className="flex-shrink-0 mt-1">
@@ -117,19 +124,28 @@ const ScanResults = ({ results }: ScanResultsProps) => {
           ))}
         </div>
 
-        {/* Recommendations */}
-        <div className="mt-8 p-6 bg-green-500/10 rounded-xl border border-green-400/30">
-          <div className="flex items-center space-x-3 mb-4">
-            <CheckCircle className="h-6 w-6 text-green-400" />
-            <h4 className="text-xl font-medium text-white">Recommandations</h4>
+        {/* Personalized Advice */}
+        {results.personalizedAdvice && results.personalizedAdvice.length > 0 && (
+          <div className="mt-8 p-6 bg-blue-500/10 rounded-xl border border-blue-400/30">
+            <div className="flex items-center space-x-3 mb-4">
+              <CheckCircle className="h-6 w-6 text-blue-400" />
+              <h4 className="text-xl font-medium text-white">Conseils Personnalisés</h4>
+            </div>
+            <div className="space-y-3 text-slate-300">
+              {results.personalizedAdvice.map((advice, index) => (
+                <div key={index} className="text-sm leading-relaxed">
+                  {advice.startsWith('•') ? (
+                    <div className="ml-4">{advice}</div>
+                  ) : advice.startsWith('  •') ? (
+                    <div className="ml-8 text-slate-400">{advice}</div>
+                  ) : (
+                    <div className="font-medium text-white mb-2">{advice}</div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-          <ul className="space-y-2 text-slate-300">
-            <li>• Configurez les headers de sécurité appropriés (X-Frame-Options, CSP)</li>
-            <li>• Désactivez les méthodes HTTP non nécessaires</li>
-            <li>• Implémentez une politique de cookies sécurisée</li>
-            <li>• Testez régulièrement votre application avec cet outil</li>
-          </ul>
-        </div>
+        )}
       </div>
     </div>
   );

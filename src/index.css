@@ -99,7 +99,81 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    background: radial-gradient(ellipse at center, #581c87 0%, #3b1065 25%, #1e0b3d 50%, #0f172a 75%, #0a0f1a 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    min-height: 100%;
+    height: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
+    background: radial-gradient(ellipse at center, #581c87 0%, #3b1065 25%, #1e0b3d 50%, #0f172a 75%, #0a0f1a 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    min-height: 100vh;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -100vh;
+    left: 0;
+    right: 0;
+    height: 300vh;
+    background: radial-gradient(ellipse at center, #581c87 0%, #3b1065 25%, #1e0b3d 50%, #0f172a 75%, #0a0f1a 100%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  #root {
+    min-height: 100vh;
+    background: transparent;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Empêcher le scroll horizontal et gérer le débordement */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Styles pour éviter les zones blanches sur mobile */
+  @media (max-width: 768px) {
+    html, body {
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      height: 400vh;
+      top: -150vh;
+    }
+  }
+
+  /* Styles pour les navigateurs WebKit (Safari, Chrome) */
+  @supports (-webkit-appearance: none) {
+    html {
+      background: radial-gradient(ellipse at center, #581c87 0%, #3b1065 25%, #1e0b3d 50%, #0f172a 75%, #0a0f1a 100%);
+      background-attachment: scroll;
+    }
+
+    body {
+      background: radial-gradient(ellipse at center, #581c87 0%, #3b1065 25%, #1e0b3d 50%, #0f172a 75%, #0a0f1a 100%);
+      background-attachment: scroll;
+    }
+
+    body::before {
+      background: radial-gradient(ellipse at center, #581c87 0%, #3b1065 25%, #1e0b3d 50%, #0f172a 75%, #0a0f1a 100%);
+    }
   }
 }
