@@ -84,7 +84,7 @@ class PDFGenerator {
 
   private addVulnerabilitiesSection(doc: jsPDF, vulnerabilities: Vulnerability[], startY: number): number {
     let currentY = startY;
-    
+
     // Section title
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -116,7 +116,7 @@ class PDFGenerator {
       currentY += 10;
 
       // Severity badge
-      const severityColor = this.getSeverityColor(vuln.severity);
+      const severityColor = vuln.severity === 'best-practice' ? [34, 197, 94] : this.getSeverityColor(vuln.severity);
       doc.setFillColor(...severityColor);
       doc.roundedRect(20, currentY - 5, 25, 8, 2, 2, 'F');
       doc.setTextColor(255, 255, 255);
@@ -157,7 +157,7 @@ class PDFGenerator {
         currentY += recLines.length * 5 + 10;
       }
 
-      currentY += 5; // Space between vulnerabilities
+      currentY += 10; // Add extra space between vulnerabilities
     });
 
     return currentY;

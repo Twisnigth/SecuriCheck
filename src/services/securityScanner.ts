@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export interface Vulnerability {
   type: string;
-  severity: "low" | "medium" | "high";
+  severity: "low" | "medium" | "high" | "best-practice";
   description: string;
   details: string;
   recommendation?: string;
@@ -123,9 +123,10 @@ class SecurityScanner {
 
       securityHeaders.forEach(({ header, name, description, severity }) => {
         if (!headers[header] && !headers[header.toLowerCase()]) {
+          const vulnSeverity = severity === 'low' ? 'best-practice' : severity;
           vulnerabilities.push({
             type: `Header de sécurité manquant: ${name}`,
-            severity,
+            severity: vulnSeverity,
             description,
             details: `Le header ${name} n'est pas présent dans la réponse`,
             recommendation: `Ajouter le header ${name} à la configuration du serveur`
@@ -215,7 +216,7 @@ class SecurityScanner {
       if (!cacheControl) {
         vulnerabilities.push({
           type: 'Absence de contrôle de cache',
-          severity: 'low',
+          severity: 'best-practice',
           description: 'Aucune directive de cache définie',
           details: 'Header Cache-Control manquant',
           recommendation: 'Définir des directives de cache appropriées'
@@ -669,44 +670,12 @@ class SecurityScanner {
 
   private calculateScore(vulnerabilities: Vulnerability[]): number {
     let score = 100;
-    let highCount = 0;
-    let mediumCount = 0;
-    let lowCount = 0;
-
     vulnerabilities.forEach(vuln => {
-      switch (vuln.severity) {
-        case 'high':
-          highCount++;
-          score -= 15; // Reduced individual penalty
-          break;
-        case 'medium':
-          mediumCount++;
-          score -= 8; // Reduced individual penalty
-          break;
-        case 'low':
-          lowCount++;
-          score -= 3; // Reduced individual penalty
-          break;
-      }
+      if (vuln.severity === 'high') score -= 15;
+      else if (vuln.severity === 'medium') score -= 8;
+      else if (vuln.severity === 'low') score -= 3;
+      // Exclude 'best-practice' from scoring.
     });
-
-    // Additional penalties for multiple vulnerabilities of same type
-    if (highCount > 3) {
-      score -= (highCount - 3) * 5; // Extra penalty for many high severity
-    }
-    if (mediumCount > 5) {
-      score -= (mediumCount - 5) * 2; // Extra penalty for many medium severity
-    }
-
-    // Bonus for having some security measures
-    const hasSecurityHeaders = vulnerabilities.filter(v =>
-      v.type.includes('Header') || v.type.includes('CSP') || v.type.includes('HSTS')
-    ).length < 3;
-
-    if (hasSecurityHeaders) {
-      score += 5; // Small bonus for having basic security headers
-    }
-
     return Math.max(0, Math.min(100, score));
   }
 
