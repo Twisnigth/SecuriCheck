@@ -15,7 +15,7 @@ class PDFGenerator {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('Cyber Sensei - Rapport de Sécurité', 20, 20);
+    doc.text('Securicheck - Rapport de Sécurité', 20, 20);
     
     // Reset color
     doc.setTextColor(0, 0, 0);
